@@ -1,10 +1,7 @@
-#include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
-#include <ctype.h>
+#include <stdio.h>
 #include <pcap.h>
 #include <arpa/inet.h>
-#include <netinet/in.h>
 
 #define ETH_LEN 14
 
@@ -57,11 +54,14 @@ void print_data(const u_char *data, int size)
     }
 
     for (i = 0; i < size; i++) {
-        if (isprint(data[i]) || data[i] == '\n' || data[i] == '\r' || data[i] == '\t')
+        if ((data[i] >= 32 && data[i] <= 126) ||
+            data[i] == '\n' || data[i] == '\r' || data[i] == '\t') {
             printf("%c", data[i]);
-        else
+        } else {
             printf(".");
+        }
     }
+
     printf("\n");
 }
 
@@ -100,6 +100,7 @@ void got_packet(u_char *args, const struct pcap_pkthdr *header, const u_char *pa
     data_len = ip_total_len - ip_header_len - tcp_header_len;
 
     real_len = header->caplen - ETH_LEN - ip_header_len - tcp_header_len;
+
     if (data_len > real_len)
         data_len = real_len;
 
@@ -152,6 +153,7 @@ int main(int argc, char *argv[])
     printf("Device: %s\n", dev);
 
     handle = pcap_open_live(dev, BUFSIZ, 1, 1000, errbuf);
+
     if (handle == NULL) {
         printf("pcap_open_live error: %s\n", errbuf);
         return 1;
@@ -170,8 +172,10 @@ int main(int argc, char *argv[])
     }
 
     printf("Start sniffing TCP packets...\n");
+
     pcap_loop(handle, -1, got_packet, NULL);
 
     pcap_close(handle);
+
     return 0;
 }
